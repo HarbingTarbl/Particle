@@ -48,11 +48,21 @@ GLuint particleShader;
 GLuint arrayBuffer[2];
 GLuint currrentArrayBuffer;
 GLuint defaultVAO[2];
+GLuint squareVAO;
+GLuint squareVBO;
 GLuint uniformProjection;
 GLuint uniformView;
 GLuint uniformTimeStep;
+GLuint uniformForceTexture;
 GLuint numParticles;
 GLuint feedbackObject[2];
+GLuint textureObject;
+GLuint framebuffer;
+GLuint squareShader;
+GLuint uniformNewMouse;
+GLuint uniformOldMouse;
+GLuint uniformSquareProjection;
+GLuint uniformMouseTranslate;
 
 void CheckError(const char* str = NULL)
 {
@@ -89,6 +99,35 @@ void Init()
 	//Set GL States
 	glClearColor(0, 0, .3, 1);
 
+	glGenFramebuffers(1, &framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	CheckError("Framebuffer Bind");
+
+	glGenTextures(1, &textureObject);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureObject);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 800, 600, 0, GL_RG, GL_FLOAT, NULL);
+	CheckError("Texture TexImage2D");
+	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	CheckError("Texture Parmas");
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureObject, 0);
+	CheckError("FrameBuffer Texture");
+
+	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, drawBuffers);
+	CheckError("glDrawBuffers Check");
+
+	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		cout << "Framebuffer Setup Error" << endl;
+	else
+		cout << "Framebuffer Setup Ok!" << endl;
+	CheckError("FrameBuffer Check");
+
 	try //Create Shader
 	{
 		using namespace glutil;
@@ -112,6 +151,7 @@ void Init()
 		program = glCreateProgram();
 		glAttachShader(program, vert);
 		glAttachShader(program, frag);
+		CheckError("Shader Attach");
 		glTransformFeedbackVaryings(program, 3, varyings, GL_INTERLEAVED_ATTRIBS);
 		glLinkProgram(program);
 		GLint status;
@@ -127,7 +167,7 @@ void Init()
 			throw exception("Link Failed");
 		}
 
-		CheckError();
+		CheckError("Program Linking");
 		particleShader = program;
 	}
 	catch(exception& e)
@@ -147,17 +187,17 @@ void Init()
 	int ypart = 500;
 	numParticles = xpart * ypart;;
 	particles.reserve(numParticles);
-	auto velocity = bind(uniform_real_distribution<float>(-500.0f, 500.0f), minstd_rand());
-	auto posx = bind(geometric_distribution<float>(150.0f/650.0f), minstd_rand());
-	auto posy = bind(geometric_distribution<float>(150.0f/450.0f), minstd_rand());
+	auto posx(uniform_real_distribution<float>(150.0f,650.0f));
+	auto posy(uniform_real_distribution<float>(150.0f,450.0f));
+	auto gen = minstd_rand();
 	for(int x = 0; x < xpart; x++)
 	{
 		for(int y = 0; y < ypart; y++)
 		{
 			particles.emplace_back(
-				fvec2(posx() + 400, posx() + 300),
-				fvec2(velocity(), velocity()), 
-				fvec2(posy(), posy()));
+				fvec2(posx(gen), posy(gen)),
+				fvec2(0, 0), 
+				fvec2(0, 0));
 		}
 	}
 	
@@ -166,40 +206,40 @@ void Init()
 	glBindBuffer(GL_ARRAY_BUFFER, arrayBuffer[0]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, arrayBuffer[0]);
 	glBufferData(GL_ARRAY_BUFFER, numParticles * sizeof(particle), &particles[0], GL_DYNAMIC_COPY);
-	CheckError();
+	CheckError("Buffer[0]");
 	
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedbackObject[1]);
 	glBindBuffer(GL_ARRAY_BUFFER, arrayBuffer[1]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, arrayBuffer[1]);
 	glBufferData(GL_ARRAY_BUFFER, particles.size() * sizeof(particle), NULL, GL_DYNAMIC_COPY);
-	CheckError();
+	CheckError("Buffer[1]");
 	
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, 0);
-	CheckError();
+	CheckError("Reset Buffers");
 
 	glGenVertexArrays(2, defaultVAO);
 	glBindVertexArray(0);
-	CheckError();
+	CheckError("Generate VAOs");
 	for(auto i = 0; i < 2; i++)
 	{
 		glBindVertexArray(defaultVAO[i]);
-		CheckError();
+		CheckError("Bind VAO");
 		glBindBuffer(GL_ARRAY_BUFFER, arrayBuffer[i]);
-		CheckError();
+		CheckError("Bind Buffer");
 		glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, arrayBuffer[i]);
-		CheckError();
+		CheckError("Bind Transform Buffer");
 
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
-		CheckError();
+		CheckError("VertexAttribArray");
 
 		glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(particle), 0);
 		glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(particle), (void*)(sizeof(fvec2)));
 		glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(particle), (void*)(2*sizeof(fvec2)));
-		CheckError();
+		CheckError("VertexAttribPointer");
 	}
 
 	glBindVertexArray(0);
@@ -210,26 +250,110 @@ void Init()
 	uniformProjection = glGetUniformLocation(particleShader, "Projection");
 	uniformView = glGetUniformLocation(particleShader, "View");
 	uniformTimeStep = glGetUniformLocation(particleShader, "TimeStep");
+	uniformForceTexture = glGetUniformLocation(particleShader, "ForceTexture");
 
+	glUniform1i(uniformForceTexture, 0);
 	glUniform1f(uniformTimeStep, 0.0005f);
 	glUniformMatrix4fv(uniformProjection, 1, false, value_ptr(ortho(0.0f, 800.0f, 0.0f, 600.0f)));
 	glUniformMatrix4fv(uniformView, 1, false, value_ptr(fmat4(1.0f)));
-	CheckError();
+	CheckError("Uniforms");
 
+	glEnable(GL_RASTERIZER_DISCARD);
 	glBindVertexArray(defaultVAO[0]);
-	CheckError();
+	CheckError("First Draw, bind VAO");
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedbackObject[1]);
-	CheckError();
+	CheckError("First Draw, bind TF");
 	glBeginTransformFeedback(GL_POINTS);
-	CheckError();
+	CheckError("First Draw, Begin");
 	glDrawArrays(GL_POINTS, 0, numParticles);
-	CheckError();
+	CheckError("First Draw, Draw");
 	glEndTransformFeedback();
-	CheckError();
+	CheckError("First Draw, End");
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, 0);
-	CheckError();
+	CheckError("First Draw, Unbind TF");
 	glBindVertexArray(0);
-	CheckError();
+	CheckError("First Draw, Unbind VAO");
+	glDisable(GL_RASTERIZER_DISCARD);
+
+	//Clear Force Texture
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	const float clearColor[] = {0.0f, 0.0f};
+	glClearBufferfv(GL_COLOR, 0, clearColor);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	CheckError("Force Texture Clear");
+
+	glGenVertexArrays(1, &squareVAO);
+	glGenBuffers(1, &squareVBO);
+
+	const float square[] = 
+	{
+		0, 0,
+		50, 0,
+		50, 50,
+		0, 50
+	};
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, squareVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(square), square, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	CheckError("Square VBO/VAO");
+
+	glBindVertexArray(squareVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, squareVBO);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	CheckError("Square Buffer Info");
+
+	try //Create Shader
+	{
+		using namespace glutil;
+		auto vert = CompileShader(GL_VERTEX_SHADER, 
+			string(
+				istreambuf_iterator<char>(ifstream("shaders\\square.vert", ifstream::binary)),
+				istreambuf_iterator<char>()));
+		auto frag = CompileShader(GL_FRAGMENT_SHADER,
+			string(
+				istreambuf_iterator<char>(ifstream("shaders\\square.frag", ifstream::binary)),
+				istreambuf_iterator<char>()));
+
+		auto program = LinkProgram(vert, frag);
+		program = glCreateProgram();
+		glAttachShader(program, vert);
+		glAttachShader(program, frag);
+		CheckError("Square Shader Attach");
+		glLinkProgram(program);
+		GLint status;
+		glGetProgramiv(program, GL_LINK_STATUS, &status);
+		cout << "SQUARE LINK : " << (status ? "OK!" : "FAILED!") << endl;
+		if(!status)
+		{
+			GLint count;
+			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &count);
+			vector<char> err(count);
+			glGetProgramInfoLog(program, count, &count, &err[0]);
+			throw exception("Link Failed");
+		}
+		CheckError("Square Program Linking");
+		squareShader = program;
+	}
+	catch(exception& e)
+	{
+		cout << e.what() << endl;
+	}
+
+	uniformOldMouse = glGetUniformLocation(squareShader, "OldMouse");
+	uniformNewMouse = glGetUniformLocation(squareShader, "NewMouse");
+	uniformSquareProjection = glGetUniformLocation(squareShader, "Projection");
+	uniformMouseTranslate = glGetUniformLocation(squareShader, "Transform");
+	glUseProgram(squareShader);
+	glUniformMatrix4fv(uniformSquareProjection, 1, false, value_ptr(ortho(00.0f, 800.f,600.0f, 0.0f)));
+	glUseProgram(particleShader);
+
+	CheckError("Square Program Uniforms");
+
 	cout << "Init Ok?" << endl;
 }
 
@@ -238,7 +362,9 @@ void Destroy()
 
 }
 
-
+glm::ivec2 oldmouse;
+glm::ivec2 newmouse;
+int mousedown = 0;
 char go = 0;
 int steps = 10;
 double tts = 0;
@@ -252,8 +378,8 @@ void Update()
 		if(glfwGetKey(GLFW_KEY_PAUSE))
 		{
 			go = !go;
+			cout << "Auto Step : " << (go ? "Enabled" : "Disabled") << endl;
 			tts = ctime + 0.1;
-			return;
 		}
 		if(glfwGetKey(GLFW_KEY_UP))
 		{
@@ -269,9 +395,12 @@ void Update()
 		}
 	}
 
+	mousedown = glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT);
+	glfwGetMousePos(&newmouse.x, &newmouse.y);
 
 	if(go || glfwGetKey(GLFW_KEY_SPACE))
 	{
+		glUseProgram(particleShader);
 		glEnable(GL_RASTERIZER_DISCARD);
 		for(int i = 0; i < steps; i++)
 		{
@@ -289,12 +418,34 @@ void Update()
 	}
 }
 
+
+
+
 void Display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//Draw Particles
+	glUseProgram(particleShader);
 	glBindVertexArray(defaultVAO[currrentArrayBuffer]);
 	glDrawArrays(GL_POINTS, 0, numParticles);
-	CheckError("Display");
+	CheckError("Display Particles");
+	
+	if(mousedown)
+	{
+        glUseProgram(squareShader);
+		glUniform2fv(uniformOldMouse, 1, value_ptr(fvec2(oldmouse)));
+		glUniform2fv(uniformNewMouse, 1, value_ptr(fvec2(newmouse)));
+		glUniformMatrix4fv(uniformMouseTranslate, 1, false, value_ptr(glm::translate((float)newmouse.x, 600.0f - newmouse.y, 0.0f)));
+		cout << "Mouse (X:"<<newmouse.x<<",Y:"<<newmouse.y<<")"<<endl;
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		glViewport(400, 0,  800.0, 600.0);
+		glBindVertexArray(squareVBO);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0,  800.0, 600.0);
+
+		CheckError("Write Force Texture");
+	}
 }
 
 int main(int argc, char* args[])
