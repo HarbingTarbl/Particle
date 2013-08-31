@@ -54,20 +54,29 @@ GLuint uniformTimeStep;
 GLuint numParticles;
 GLuint feedbackObject[2];
 
-void CheckError()
+void CheckError(const char* str = NULL)
 {
+	bool errored = true;
 	switch(glGetError())
 	{
 	case GL_INVALID_ENUM:
-		cout << "Enum" << endl;
+		cout << "Enum";
 		break;
 	case GL_INVALID_VALUE:
-		cout << "Value" << endl;
+		cout << "Value";
 		break;
 	case GL_INVALID_OPERATION:
-		cout << "Oper" << endl;
+		cout << "Operation";
 		break;
+	case GL_NO_ERROR:
+		errored = false;
+		return;
 	}
+
+	if(str)
+		cout << " : " << str;
+
+	cout << endl;
 }
 
 void Init()
@@ -126,8 +135,6 @@ void Init()
 		cout << e.what() << endl;
 	}
 
-
-
 	//Buffer Information
 
 	glGenTransformFeedbacks(2, feedbackObject);
@@ -136,19 +143,21 @@ void Init()
 	currrentArrayBuffer = 0;
 
 	vector<particle> particles;
-	int xpart = 200;
-	int ypart = 200;
+	int xpart = 500;
+	int ypart = 500;
 	numParticles = xpart * ypart;;
-	float deltax = 3.5f;
-	float deltay = 2.5f;
 	particles.reserve(numParticles);
+	auto velocity = bind(uniform_real_distribution<float>(-500.0f, 500.0f), minstd_rand());
+	auto posx = bind(geometric_distribution<float>(150.0f/650.0f), minstd_rand());
+	auto posy = bind(geometric_distribution<float>(150.0f/450.0f), minstd_rand());
 	for(int x = 0; x < xpart; x++)
 	{
 		for(int y = 0; y < ypart; y++)
 		{
 			particles.emplace_back(
-				fvec2((float)x * (float)deltax + 10, (float)y * (float)deltay + 10),
-				fvec2((((rand() % 500) - 250) / 250.0f), (((rand() % 500) - 250) / 250.0f)), fvec2(0));
+				fvec2(posx() + 400, posx() + 300),
+				fvec2(velocity(), velocity()), 
+				fvec2(posy(), posy()));
 		}
 	}
 	
@@ -202,7 +211,7 @@ void Init()
 	uniformView = glGetUniformLocation(particleShader, "View");
 	uniformTimeStep = glGetUniformLocation(particleShader, "TimeStep");
 
-	glUniform1f(uniformTimeStep, 0.01f);
+	glUniform1f(uniformTimeStep, 0.0005f);
 	glUniformMatrix4fv(uniformProjection, 1, false, value_ptr(ortho(0.0f, 800.0f, 0.0f, 600.0f)));
 	glUniformMatrix4fv(uniformView, 1, false, value_ptr(fmat4(1.0f)));
 	CheckError();
@@ -221,7 +230,7 @@ void Init()
 	CheckError();
 	glBindVertexArray(0);
 	CheckError();
-
+	cout << "Init Ok?" << endl;
 }
 
 void Destroy()
@@ -231,18 +240,35 @@ void Destroy()
 
 
 char go = 0;
-int steps = 1;
+int steps = 10;
+double tts = 0;
 void Update()
 {
 	if(glfwGetKey(GLFW_KEY_ESC))
 		glfwCloseWindow();
+	double ctime = glfwGetTime();
+	if(ctime >= tts)
+	{
+		if(glfwGetKey(GLFW_KEY_PAUSE))
+		{
+			go = !go;
+			tts = ctime + 0.1;
+			return;
+		}
+		if(glfwGetKey(GLFW_KEY_UP))
+		{
+			tts = ctime + 0.05;
+			steps++;
+			cout << "Steps : " << steps << endl;
+		}
+		else if(glfwGetKey(GLFW_KEY_DOWN))
+		{
+			tts = ctime + 0.05;
+			steps--;
+			cout << "Steps : " << steps << endl;
+		}
+	}
 
-	go = glfwGetKey(GLFW_KEY_PAUSE) ? !go : go;
-
-	if(glfwGetKey(GLFW_KEY_UP))
-		steps++;
-	else if(glfwGetKey(GLFW_KEY_DOWN))
-		steps--;
 
 	if(go || glfwGetKey(GLFW_KEY_SPACE))
 	{
@@ -250,10 +276,14 @@ void Update()
 		for(int i = 0; i < steps; i++)
 		{
 			glBindVertexArray(defaultVAO[currrentArrayBuffer]);
-			glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedbackObject[currrentArrayBuffer ^= 0]);
+			currrentArrayBuffer = !currrentArrayBuffer;
+			glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedbackObject[currrentArrayBuffer]);
 			glBeginTransformFeedback(GL_POINTS);
+			CheckError("Begin Feedback");
 			glDrawArrays(GL_POINTS, 0, numParticles);
+			CheckError("Draw Arrays");
 			glEndTransformFeedback();
+			CheckError("Update");
 		}
 		glDisable(GL_RASTERIZER_DISCARD);
 	}
@@ -264,6 +294,7 @@ void Display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindVertexArray(defaultVAO[currrentArrayBuffer]);
 	glDrawArrays(GL_POINTS, 0, numParticles);
+	CheckError("Display");
 }
 
 int main(int argc, char* args[])
@@ -282,7 +313,7 @@ int main(int argc, char* args[])
 
 
 
-	glfwSwapBuffers();
+	glfwSwapBuffers();  
 	Init();
 	while(glfwGetWindowParam(GLFW_OPENED))
 	{
