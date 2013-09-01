@@ -5,5 +5,6 @@ uniform vec2 NewMouse;
 out vec2 ocolor;
 void main()
 {
-	ocolor = (NewMouse - OldMouse);	
+	vec2 dir = normalize(NewMouse - OldMouse);
+	ocolor =  dir * 10 / distance(NewMouse, gl_FragCoord.xy);
 }

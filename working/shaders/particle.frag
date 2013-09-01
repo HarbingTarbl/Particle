@@ -8,6 +8,9 @@ uniform sampler2D ForceTexture;
 
 void main()
 {
-	ocolor = vec4(length(varyVelocity) , varyAcceleration, 1.0f);
+	vec2 dir = normalize(varyAcceleration);
+	dir += 1;
+	dir /= 2.0f;
+	ocolor = vec4(length(varyVelocity), dir,  1.0f);
 	//ocolor = vec4(texture(ForceTexture, gl_PointCoord ).rg, 0, 0);
 }

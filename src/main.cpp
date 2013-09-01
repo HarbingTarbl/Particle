@@ -54,6 +54,7 @@ GLuint uniformProjection;
 GLuint uniformView;
 GLuint uniformTimeStep;
 GLuint uniformForceTexture;
+GLuint otherMouse;
 GLuint numParticles;
 GLuint feedbackObject[2];
 GLuint textureObject;
@@ -287,10 +288,12 @@ void Init()
 
 	const float square[] = 
 	{
-		0, 0,
-		50, 0,
-		50, 50,
-		0, 50
+		-1, -1,
+		1, -1,
+		1, 1,
+		1, 1,
+		-1, 1,
+		-1, -1,
 	};
 
 	glBindVertexArray(0);
@@ -345,7 +348,7 @@ void Init()
 	}
 
 	uniformOldMouse = glGetUniformLocation(squareShader, "OldMouse");
-	uniformNewMouse = glGetUniformLocation(squareShader, "NewMouse");
+	uniformNewMouse = glGetUniformLocation(particleShader, "NewMouse");
 	uniformSquareProjection = glGetUniformLocation(squareShader, "Projection");
 	uniformMouseTranslate = glGetUniformLocation(squareShader, "Transform");
 	glUseProgram(squareShader);
@@ -397,6 +400,7 @@ void Update()
 
 	mousedown = glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT);
 	glfwGetMousePos(&newmouse.x, &newmouse.y);
+	newmouse.y = 600 - newmouse.y;
 
 	if(go || glfwGetKey(GLFW_KEY_SPACE))
 	{
@@ -426,6 +430,7 @@ void Display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//Draw Particles
 	glUseProgram(particleShader);
+	glUniform2fv(uniformNewMouse, 1, value_ptr(fvec2(newmouse)));
 	glBindVertexArray(defaultVAO[currrentArrayBuffer]);
 	glDrawArrays(GL_POINTS, 0, numParticles);
 	CheckError("Display Particles");
@@ -440,7 +445,7 @@ void Display()
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 		glViewport(400, 0,  800.0, 600.0);
 		glBindVertexArray(squareVBO);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0,  800.0, 600.0);
 
