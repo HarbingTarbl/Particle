@@ -21,9 +21,10 @@ solution "particle"
 			defines "_DEBUG"
 			flags "Symbols"
 			targetdir "bin/debug"
+			postbuildcommands { "copy ..\\bin\\debug\\particleD.exe ..\\working\\particle.exe" }
 		
 		configuration "Release"
 			defines "NDEBUG"
 			targetdir "bin/release"
 			flags {"OptimizeSpeed", "NoFramePointer", "ExtraWarnings", "NoEditAndContinue"}
-
+			postbuildcommands { "copy ..\\bin\\release\\particle.exe ..\\working\\particle.exe" }

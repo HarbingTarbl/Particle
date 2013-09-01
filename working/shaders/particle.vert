@@ -14,6 +14,7 @@ out vec2 varyPosition;
 out vec2 varyVelocity;
 out vec2 varyAcceleration;
 
+
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
