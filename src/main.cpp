@@ -35,8 +35,11 @@ unique_ptr<program> shader;
 GLuint textures[2];
 GLuint framebuffers[2];
 GLuint renders[2];
-
 GLuint vao;
+int clicked;
+int showtex;
+
+fvec2 mouse;
 
 
 void CheckError(const char* str = NULL)
@@ -75,7 +78,7 @@ void CheckError(const char* str = NULL)
 void Init()
 {
 
-	
+
 	CheckErrorL(glGenVertexArrays(1, &vao));
 	CheckErrorL(glBindVertexArray(vao));
 
@@ -84,15 +87,8 @@ void Init()
 	CheckErrorL(glGenTextures(2, textures));
 	CheckErrorL(glGenRenderbuffers(2, renders));
 
-	unique_ptr<char[]> image(new char[800*600*4]);
-	for(int i = 0; i < 16; i++)
-	{
-		memset(image.get() + (int)(800.0f*(i*600/16)*4), (16)*i,  800*(600/16)*4);
-	}
-
-
 	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[0]));
-	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.get()));
+	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0));
@@ -117,15 +113,11 @@ void Init()
 
 	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[0]));
 	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textures[0], 0));
-
-	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[1]));
-	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textures[1], 0));
-
+	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, textures[1], 0));
 	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
 
 	cout << (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? "Complete" : "Incomplete") << endl; //Reports as Complete
-	cout << (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? "Complete" : "Incomplete") << endl; //Reports as Complete
 
 	try
 	{
@@ -142,46 +134,68 @@ void Init()
 	}
 
 	shader->use();
-	shader->uniform("Projection", ortho(0.0f, 800.0f, 0.0f, 600.0f));
+	shader->uniform("Projection", ortho(0.0f, 800.0f, 600.0f, 0.0f));
 	shader->uniform("tex", 0);
+	glActiveTexture(GL_TEXTURE0);
 
 	GLuint arr;
 	glGenBuffers(1, &arr);
 	glBindBuffer(GL_ARRAY_BUFFER, arr);
 	const float buffdata[] = 
 	{
-		0, 0,
-		800, 0,
-		800, 600,
-		800, 600,
-		0, 600,
-		0, 0,
+		-50, -50,
+		50, -50,
+		50, 50,
+		50, 50,
+		-50, 50,
+		-50, -50,
 	};
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(buffdata), buffdata, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_STENCIL_TEST);
 
-	CheckErrorL(glDisable(GL_DEPTH_TEST));
-	CheckErrorL(glDisable(GL_STENCIL_TEST));
-	CheckErrorL(glDisable(GL_CULL_FACE));
-	
 	CheckError("Init");
 	cout << "Init Ok?" << endl;
 }
 
+int currentFramebuffer = 0;
+fvec4 color;
 void Display()
 {
-	CheckErrorL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-
-	CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
-	CheckErrorL(glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers[0]));
-	CheckErrorL(glBlitFramebuffer(0, 0, 800, 600, 0,0, 800, 600, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-
-
-	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[0]));
+	CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers[0]));
+	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[currentFramebuffer]));
+	currentFramebuffer = !currentFramebuffer;
+	CheckErrorL(glDrawBuffer(GL_COLOR_ATTACHMENT0 + currentFramebuffer));
+	shader->uniform("Projection", ortho(-50.0f, 50.0f, -50.0f, 50.0f));
+	shader->uniform("MousePos", fvec2(0, 0));
+	shader->uniform("color", fvec4(0,0,0,0));
 	CheckErrorL(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+	if(clicked)
+	{
+		shader->uniform("Projection", ortho(0.0f, 800.0f, 600.0f, 0.0f));
+		shader->uniform("MousePos", mouse);
+		shader->uniform("color", color);
+		CheckErrorL(glDrawArrays(GL_TRIANGLES, 0, 6));
+		CheckErrorL(glBindTexture(GL_TEXTURE_2D, 0));
+	}
+
+	if(1)
+	{
+		CheckErrorL(glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers[0]));
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + currentFramebuffer);
+		CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+		CheckErrorL(glBlitFramebuffer(0, 0, 800, 600, 0, 0, 800, 600, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+	}
+	else
+	{
+		CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+		CheckErrorL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+	}
+
 	CheckError("Display");
 }
 
@@ -197,7 +211,28 @@ void Update()
 {
 	if(glfwGetKey(GLFW_KEY_ESC))
 		glfwCloseWindow();
-	
+
+	int x, y;
+
+	glfwGetMousePos(&x, &y);
+	mouse.x = x;
+	mouse.y = y;
+	clicked = glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT);
+	showtex = glfwGetKey(GLFW_KEY_F1);
+
+	if(glfwGetKey(GLFW_KEY_KP_1))
+		color = fvec4(1.0, 0, 0, 1);
+	else if(glfwGetKey(GLFW_KEY_KP_2))
+		color = fvec4(0.0, 1.0, 0, 1);
+	else if(glfwGetKey(GLFW_KEY_KP_3))
+		color = fvec4(0.0, 0.0, 1.0, 1);
+	else if(glfwGetKey(GLFW_KEY_KP_3))
+		color = fvec4(0.0, 1.0, 1.0, 1);
+
+
+
+
+
 	CheckError("Update");
 }
 
