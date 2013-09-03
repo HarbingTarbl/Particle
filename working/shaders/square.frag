@@ -1,7 +1,8 @@
 #version 330
-
+uniform sampler2D tex;
+smooth in vec2 uv;
 out vec4 ocolor;
 void main()
 {
-	ocolor = vec4(1,1,1,1);
+	ocolor = texture(tex, uv);
 }

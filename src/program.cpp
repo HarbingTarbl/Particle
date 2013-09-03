@@ -1,7 +1,7 @@
 #include "program.h"
 #include <memory>
 #include <fstream>
-#include <boost/filesystem/path.hpp>
+//#include <boost/filesystem/path.hpp>
 
 namespace particle_
 {
@@ -65,10 +65,10 @@ namespace particle_
 
 		try
 		{
-			using boost::filesystem::path;
+			//using boost::filesystem::path;
 			using namespace std;
 
-			ifstream file(path(fname).make_preferred().string(), ifstream::binary);	
+			ifstream file(fname, ifstream::binary);	
 			if(!file.is_open())
 				throw exception(string("Unable to open " + fname).c_str());
 			file.seekg(0, ifstream::end);
