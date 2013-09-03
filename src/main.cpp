@@ -299,7 +299,6 @@ void Update()
 		}
 	}
 
-	mousedown = glfwGetMouseButton(GLFW_MOUSE_BUTTON_RIGHT);
 	glfwGetMousePos(&newmouse.x, &newmouse.y);
 	newmouse.y = 600 - newmouse.y;
 
