@@ -4,13 +4,23 @@ smooth in vec2 uv;
 out vec4 ocolor;
 
 uniform vec4 color;
+uniform vec2 MousePos;
+
+
+const vec4 Up = vec4(1.0, 0.0, 0.0, 1.0);
+const vec4 Down = vec4(0.0, 0.0, 1.0, 1.0);
+const vec4 Left = vec4(1.0, 0.0, 0.0, 1.0);
+const vec4 Right = vec4(0.0, 1.0, 0.0, 1.0);
+
+
+
 
 void main()
 {
-	vec4 texcolor = texture(tex, uv);
-	texcolor = texcolor * (1.0 - 0.000001);
-	texcolor = clamp(texcolor - vec4(0.004f), 0.0, 1.0);
-
-
-	ocolor = clamp(texcolor + color, 0.0, 1.0);
+	vec2 normmouse = vec2(MousePos.x, 600.0 - MousePos.y);
+	vec2 dir = normalize(gl_FragCoord.xy - normmouse);
+	dir += 1.0;
+	dir /= 2.0;
+	//ocolor = vec4(mix(Up, Down, dir.x) + mix(Left, Right, dir.y));
+	ocolor = texture(tex, dir);
 } 

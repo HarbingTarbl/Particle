@@ -82,13 +82,24 @@ void Init()
 	CheckErrorL(glGenVertexArrays(1, &vao));
 	CheckErrorL(glBindVertexArray(vao));
 
+	unique_ptr<char[]> image(new char[800*600*4]);
+	memset(image.get(), 0, 800*600*4);
+	for(int i = 0; i < 800; i++)
+	{
+		for(int x = 0; x < 600; x++)
+		{
+			if(x == 0 || x == 599 || i == 0 || i == 799)
+			for(int n = 0; n < 4; n++)
+				image[x*800*4 + i*4 + n] = 0xFF;
 
+		}
+	}
 	CheckErrorL(glGenFramebuffers(2, framebuffers));
 	CheckErrorL(glGenTextures(2, textures));
 	CheckErrorL(glGenRenderbuffers(2, renders));
 
 	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[0]));
-	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0));
@@ -100,7 +111,7 @@ void Init()
 
 
 	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[1]));
-	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0));
+	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.get()));
 
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
 	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
@@ -113,7 +124,7 @@ void Init()
 
 	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[0]));
 	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textures[0], 0));
-	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, textures[1], 0));
+	//CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, textures[1], 0));
 	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
 
@@ -143,12 +154,12 @@ void Init()
 	glBindBuffer(GL_ARRAY_BUFFER, arr);
 	const float buffdata[] = 
 	{
-		-50, -50,
-		50, -50,
-		50, 50,
-		50, 50,
-		-50, 50,
-		-50, -50,
+		-0, 0,
+		800, 0,
+		800, 600,
+		800, 600,
+		0, 600,
+		-0, 0,
 	};
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(buffdata), buffdata, GL_STATIC_DRAW);
@@ -165,37 +176,20 @@ int currentFramebuffer = 0;
 fvec4 color;
 void Display()
 {
+	CheckErrorL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 	CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers[0]));
-	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[currentFramebuffer]));
-	currentFramebuffer = !currentFramebuffer;
-	CheckErrorL(glDrawBuffer(GL_COLOR_ATTACHMENT0 + currentFramebuffer));
-	shader->uniform("Projection", ortho(-50.0f, 50.0f, -50.0f, 50.0f));
-	shader->uniform("MousePos", fvec2(0, 0));
-	shader->uniform("color", fvec4(0,0,0,0));
+	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[1]));
+	//currentFramebuffer = !currentFramebuffer;
+	CheckErrorL(glDrawBuffer(GL_COLOR_ATTACHMENT0));
+	shader->uniform("Projection", ortho(0.0f, 800.0f, 600.0f, 0.0f));
+	shader->uniform("MousePos", mouse);
+	//shader->uniform("color", fvec4(0,0,0,0));
 	CheckErrorL(glDrawArrays(GL_TRIANGLES, 0, 6));
 
-	if(clicked)
-	{
-		shader->uniform("Projection", ortho(0.0f, 800.0f, 600.0f, 0.0f));
-		shader->uniform("MousePos", mouse);
-		shader->uniform("color", color);
-		CheckErrorL(glDrawArrays(GL_TRIANGLES, 0, 6));
-		CheckErrorL(glBindTexture(GL_TEXTURE_2D, 0));
-	}
-
-	if(1)
-	{
-		CheckErrorL(glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers[0]));
-		glReadBuffer(GL_COLOR_ATTACHMENT0 + currentFramebuffer);
-		CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
-		CheckErrorL(glBlitFramebuffer(0, 0, 800, 600, 0, 0, 800, 600, GL_COLOR_BUFFER_BIT, GL_NEAREST));
-	}
-	else
-	{
-		CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
-		CheckErrorL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-	}
-
+	CheckErrorL(glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers[0]));
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+	CheckErrorL(glBlitFramebuffer(0, 0, 800, 600, 0, 0, 800, 600, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 	CheckError("Display");
 }
 
