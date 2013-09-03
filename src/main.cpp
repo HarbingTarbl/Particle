@@ -32,11 +32,8 @@ using glm::value_ptr;
 
 
 unique_ptr<program> shader;
-GLuint textureId = 0;
-GLuint otherTexture = 0;
-
-GLuint framebuffer = 0;
-GLuint otherbuffer = 0;
+GLuint textures[2];
+GLuint framebuffers[2];
 
 GLuint vao;
 
@@ -68,71 +65,71 @@ void CheckError(const char* str = NULL)
 
 #define __UG(x) #x
 #define _UG(x) __UG(x)
-#define CheckErrorL CheckError(__FILE__ "@" _UG(__LINE__))
+#ifdef _DEBUG
+#define CheckErrorL(CMD) CMD; CheckError(__UG(CMD) "@" __FILE__ ":" _UG(__LINE__))
+#else
+#define CheckErrorL(CMD) CMD
+#endif
 
 void Init()
 {
 
 	
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+	CheckErrorL(glGenVertexArrays(1, &vao));
+	CheckErrorL(glBindVertexArray(vao));
+		CheckError("In1it");
 
-	glGenTextures(2, &textureId);
-	glGenFramebuffers(2, &framebuffer);
-	//glGenFramebuffers(1, &otherbuffer);
-	//glGenTextures(1, &otherTexture);
-	
-	glBindTexture(GL_TEXTURE_2D, textureId);
-	CheckErrorL;
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	CheckErrorL;
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	CheckErrorL;
+	CheckErrorL(glGenFramebuffers(2, framebuffers));
+	CheckErrorL(glGenTextures(2, textures));
+	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[0]));
+	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	CheckErrorL(glBindTexture(GL_TEXTURE_2D, 0));
+		CheckError("I2nit");
 
-	glBindTexture(GL_TEXTURE_2D, otherTexture);
-	CheckErrorL;
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	CheckErrorL;
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	CheckErrorL;
+	CheckErrorL(glBindTexture(GL_TEXTURE_2D, textures[1]));
+	CheckErrorL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	CheckError("In3it");
 
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	CheckErrorL;
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	CheckErrorL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	CheckErrorL(glBindTexture(GL_TEXTURE_2D, 0));
+	CheckError("Ini4t");
 
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureId, 0);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[0]));
 
-	CheckErrorL;
+	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textures[0], 0));
+	CheckErrorL(glReadBuffer(GL_COLOR_ATTACHMENT0));
+	CheckError("I5nit");
+
 
 	const float colori[] = {1.0, 0.0, 1.0, 1.0};
-	glClearBufferfv(GL_COLOR, 0, colori);
-	CheckErrorL;
+	CheckErrorL(glClearBufferfv(GL_COLOR, 0, colori));
 
-	glBindFramebuffer(GL_FRAMEBUFFER, otherbuffer);
-	CheckErrorL;
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, otherTexture, 0);
-	CheckErrorL;
+	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[1]));
+	CheckError("In6it");
+	CheckErrorL(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textures[1], 0));
+	CheckError("In7it");
+
 	const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, drawBuffers);
+	CheckErrorL(glDrawBuffers(1, drawBuffers));
+	CheckError("In8it");
 
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	CheckErrorL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
 
 	cout << (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? "Complete" : "Incomplete") << endl; //Reports as Complete
@@ -144,7 +141,7 @@ void Init()
 		program_builder b;
 		b.pushShader("shaders/square.frag");
 		b.pushShader("shaders/square.vert");
-		shader.reset(b.buildProgram());
+		//shader.reset(b.buildProgram());
 
 	}
 	catch(exception &ex)
@@ -152,31 +149,30 @@ void Init()
 		cout << ex.what() << endl;
 	}
 
-	shader->use();
+	//shader->use();
 
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_CULL_FACE);
-
+	CheckErrorL(glDisable(GL_DEPTH_TEST));
+	CheckErrorL(glDisable(GL_STENCIL_TEST));
+	CheckErrorL(glDisable(GL_CULL_FACE));
+	
+	CheckError("Init");
 	cout << "Init Ok?" << endl;
 }
 
 void Display()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	CheckErrorL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, otherbuffer);
-	CheckErrorL;
+	CheckErrorL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffers[1]));
 	const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, drawBuffers);
+	CheckErrorL(glDrawBuffers(1, drawBuffers));
 	
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	CheckErrorL;
+	CheckErrorL(glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffers[0]));
+	CheckErrorL(glReadBuffer(GL_COLOR_ATTACHMENT0));
 
-	glColorMask(true, true, true, true);
-	glBlitFramebuffer(0, 0, 0, 0, 800, 600, 800, 600, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	CheckErrorL(glColorMask(true, true, true, true));
+	CheckErrorL(glBlitFramebuffer(0, 0, 0, 0, 800, 600, 800, 600, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 	CheckError("Display");
 }
 
@@ -202,9 +198,10 @@ void Update()
 int main(int argc, char* args[])
 {
 	glfwInit();
-	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 4);
+	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 3);
 	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 3);
 	glfwOpenWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwOpenWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 0);
 
 	if(!glfwOpenWindow(800, 600, 0, 0, 0, 0, 0, 0, GLFW_WINDOW))
