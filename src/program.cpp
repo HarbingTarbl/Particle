@@ -1,14 +1,15 @@
 #include "program.h"
+#include "utilities.h"
 #include <memory>
 #include <fstream>
 #include <boost/filesystem/path.hpp>
 
-namespace particle_
+namespace particle
 {
 	using namespace std;
 	using namespace glm;
 
-	bool program::uniform(const string& name, const int i)
+	bool Program::uniform(const string& name, const int i)
 	{
 		auto kv = m_uniforms.find(name);
 		if(kv == m_uniforms.end())
@@ -17,7 +18,7 @@ namespace particle_
 
 	}
 
-	bool program::uniform(const string& name, const float f)
+	bool Program::uniform(const string& name, const float f)
 	{
 		auto kv = m_uniforms.find(name);
 		if(kv == m_uniforms.end())
@@ -25,7 +26,7 @@ namespace particle_
 		glUniform1f(kv->second, f);
 	}
 
-	bool program::uniform(const string& name, const fvec2& vec)
+	bool Program::uniform(const string& name, const fvec2& vec)
 	{
 		auto kv = m_uniforms.find(name);
 		if(kv == m_uniforms.end())
@@ -33,7 +34,7 @@ namespace particle_
 		glUniform2fv(kv->second, 1, value_ptr(vec));
 	}
 
-	bool program::uniform(const string& name, const fvec3& vec)
+	bool Program::uniform(const string& name, const fvec3& vec)
 	{
 		auto kv = m_uniforms.find(name);
 		if(kv == m_uniforms.end())
@@ -41,7 +42,7 @@ namespace particle_
 		glUniform3fv(kv->second, 1, value_ptr(vec));
 	}
 
-	bool program::uniform(const string& name, const fvec4& vec)
+	bool Program::uniform(const string& name, const fvec4& vec)
 	{
 		auto kv = m_uniforms.find(name);
 		if(kv == m_uniforms.end())
@@ -49,7 +50,7 @@ namespace particle_
 		glUniform4fv(kv->second, 1, value_ptr(vec));
 	}
 
-	bool program::uniform(const string& name, const fmat4& mat)
+	bool Program::uniform(const string& name, const fmat4& mat)
 	{
 		auto kv = m_uniforms.find(name);
 		if(kv == m_uniforms.end())
@@ -58,7 +59,7 @@ namespace particle_
 	}
 
 
-	void program_builder::pushShader(const std::string& fname, ProgramPartType type)
+	void ProgramBuilder::PushShader(const std::string& fname, ProgramPartType type)
 	{
 		size_t fsize = 0;
 		unique_ptr<char[]> buffer;
@@ -148,34 +149,9 @@ namespace particle_
 		m_shaderParts.push_back(shader);
 	}
 
-	void CheckError(const char* str = NULL)
+	Program* ProgramBuilder::BuildProgram()
 	{
-		bool errored = true;
-		switch(glGetError())
-		{
-		case GL_INVALID_ENUM:
-			cout << "Enum";
-			break;
-		case GL_INVALID_VALUE:
-			cout << "Value";
-			break;
-		case GL_INVALID_OPERATION:
-			cout << "Operation";
-			break;
-		case GL_NO_ERROR:
-			errored = false;
-			return;
-		}
-
-		if(str)
-			cout << " : " << str;
-
-		cout << endl;
-	}
-
-	program* program_builder::buildProgram()
-	{
-		unique_ptr<program> program(new program());
+		unique_ptr<Program> program(new Program());
 
 		for(auto shader : m_shaderParts)
 			glAttachShader(program->getId(), shader);
@@ -197,7 +173,7 @@ namespace particle_
 		return program.release();
 	}
 
-	void program::m_buildUniforms()
+	void Program::m_buildUniforms()
 	{
 		GLint nUniforms;
 		glGetProgramiv(getId(), GL_ACTIVE_UNIFORMS, &nUniforms);
@@ -217,11 +193,12 @@ namespace particle_
 		}
 	}
 
-	void program_builder::reset()
+	void ProgramBuilder::Reset()
 	{
 		for(auto shader : m_shaderParts)
 		{
 			glDeleteShader(shader);
 		}
+		m_shaderParts.clear();
 	}
 };

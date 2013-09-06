@@ -12,18 +12,18 @@
 using namespace std;
 using namespace glm;
 
-namespace particle_
+namespace particle
 {
-	class program_builder;
+	class ProgramBuilder;
 
-	class program
+	class Program
 	{
 	private:
-		friend class program_builder;
-		program(const program& program) {}
-		program& operator=(const program& rhs) {}
+		friend class ProgramBuilder;
+		Program(const Program& program) {}
+		Program& operator=(const Program& rhs) {}
 
-		program()
+		Program()
 		{
 			m_id = glCreateProgram();
 		}
@@ -36,7 +36,7 @@ namespace particle_
 		unordered_map<string, unsigned> m_uniforms;
 		
 	public:
-		~program()
+		~Program()
 		{
 			glDeleteProgram(m_id);
 		}
@@ -55,7 +55,7 @@ namespace particle_
 		void use() const { glUseProgram(m_id); }
 	};
 
-	class program_builder
+	class ProgramBuilder
 	{
 	public:
 		enum ProgramPartType
@@ -77,12 +77,12 @@ namespace particle_
 		vector<size_t> m_shaderParts;
 
 	public:
-		void pushShader(const std::string& fname, ProgramPartType type = INFERRED);
-		void reset();
-		program* buildProgram();
+		void PushShader(const std::string& fname, ProgramPartType type = INFERRED);
+		void Reset();
+		Program* BuildProgram();
 
-		program_builder() {}
-		~program_builder() { reset(); }
+		ProgramBuilder() {}
+		~ProgramBuilder() { Reset(); }
 	};
 };
 
